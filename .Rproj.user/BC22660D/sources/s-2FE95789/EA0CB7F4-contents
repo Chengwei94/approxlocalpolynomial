@@ -1,0 +1,126 @@
+#include <algorithm>    
+#include <memory> 
+#include <vector>
+#include <functional> 
+#include <RcppEigen.h>
+#include "KDtree.h"
+
+// [[Rcpp::plugins(cpp14)]]
+// [[Rcpp::depends(RcppEigen)]]
+
+kdtree::kdtree() = default; 
+kdtree::~kdtree() = default; 
+
+kdnode::kdnode() = default;  // constructor 
+kdnode::kdnode(kdnode&& rhs) = default;  //move 
+kdnode::~kdnode() = default;  // destructor  
+
+std::unique_ptr<kdnode> kdtree::build_tree(all_point_t::iterator start, all_point_t::iterator end, 
+                                           int split_d, double split_v, int N_min, size_t len, point_t max_dim_, point_t min_dim_, int dir)
+{
+   std::unique_ptr<kdnode> newnode = std::make_unique<kdnode>();
+    newnode->n_below=len;  
+    Rcpp::Rcout << "node created" << "\n";    
+    if(dir == 1)
+        max_dim_[split_d] = split_v; 
+    else 
+        min_dim_[split_d] = split_v; 
+
+    newnode-> max_dim = max_dim_;
+    newnode-> min_dim = min_dim_;
+
+    if (end-start <= 1) {
+        newnode->left_child = nullptr;              // leaf 
+        newnode->right_child = nullptr;             // leaf
+        root->sum_y = 1;                            
+        for (auto i = start; i != end; i ++){
+           newnode->points.push_back(*i);           //push_back points 
+           Rcpp::Rcout << (*i).back() << (*i)[1] << std::endl;
+        }   
+        return newnode; 
+    }
+    else {  
+        size_t l_len = len/2  ;            // left length
+        size_t r_len = len - l_len;     // right length
+        auto middle = start + len/2;   // middle iterator 
+ //       std::cout << "l_len" << l_len << "\n"; 
+ //       std::cout << "r_len" << r_len <<"\n";
+        int max = 0; 
+        int dim;
+        for(int i = 0; i<newnode->max_dim.size(); i++){   
+            double variance = newnode->max_dim[i] - newnode->min_dim[i]; 
+            if(variance > max){
+                max = variance; 
+                dim = i; 
+            }
+        }
+        newnode->split_d = dim;  // 
+     //   std::cout<<"max_dim" << max << " =" << dim << std::endl;
+
+        std::nth_element(start, middle, end, [dim](const std::vector<double>& a, const std::vector<double>& b) {return 
+        a[dim] < b[dim];    
+        });           
+
+        newnode->split_v = (*middle)[newnode->split_d];   
+        std::cout << "split_v = " << newnode->split_v << "on dimension " << newnode->split_d << "\n";         
+        newnode-> left_child = build_tree(start, middle, newnode->split_d, newnode->split_v, N_min, l_len, newnode->max_dim, newnode->min_dim, 1);
+        newnode-> right_child = build_tree(middle, end, newnode->split_d, newnode->split_v, N_min, r_len, newnode->max_dim, newnode->min_dim, 2);
+        
+        if ((newnode->left_child) && (newnode->right_child)){ 
+            newnode->sum_y = newnode->left_child ->sum_y + newnode ->right_child->sum_y;  // sum_y = the sum of the bottom 2 nodes
+        } 
+    }
+    return newnode;    
+}
+
+kdtree::kdtree(all_point_t points, int N_min) { 
+    size_t len = points.size(); 
+    auto middle = points.begin() + len/2; 
+    std::nth_element(points.begin(), middle , points.end(), [](const std::vector<double>& a, const std::vector<double>& b) {return 
+        a[0] < b[0];    
+    });   // get the median value 
+
+    size_t l_len = len/2 ; 
+    size_t r_len = len - l_len;
+ 
+    std::unique_ptr<kdnode> tree_root = std::make_unique<kdnode> (); //create a new root node; 
+    
+    for(int i=0; i<points[0].size(); i++) { // loop size of first point to find dimension; 
+        tree_root->max_dim.push_back(1); 
+        tree_root->min_dim.push_back(0);   
+    } 
+
+    tree_root->n_below = len; 
+    tree_root->split_d = 0; 
+    tree_root->split_v = (*middle)[tree_root->split_d];     
+    root = std::move(tree_root);
+    
+    Rcpp::Rcout << "1st split =" << root-> split_v << std::endl;   
+
+    root-> left_child = build_tree(points.begin(), middle, root->split_d, root->split_v, N_min, l_len, root->max_dim, root->min_dim, 1); 
+    root-> right_child = build_tree(middle, points.end(), root->split_d, root->split_v, N_min, r_len, root->max_dim, root->min_dim, 2); 
+
+    if ((root->left_child) && (root->right_child)){ 
+    root->sum_y = root->left_child ->sum_y + root->right_child->sum_y; 
+    }
+}
+
+
+// what functionality do i need for my nodes? 
+
+ 
+// std::unique_ptr<point> kdtree::maketree(root)
+// [[Rcpp::export]]
+double rcpp_eigentryout(const Eigen::MatrixXd &x) {
+    all_point_t z = {{1,2,3}, {2,3,4}};
+    kdtree tree(z,1); 
+    Rcpp::Rcout << "finished"; 
+    Rcpp::Rcout << x; 
+}
+
+/***R
+x = as.matrix(c(1,2))
+rcpp_eigentryout(x)
+
+*/
+
