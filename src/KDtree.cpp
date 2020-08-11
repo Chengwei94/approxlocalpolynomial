@@ -247,7 +247,6 @@ rcpp_eigentryout(x)
 
 int main(){ 
     all_point_t z = {{1,2,3,1,2},{2,3,4,2,2},{2,2,3,1,1},{4,3,4,1,1},{1,5,3,1,1},{2,3,8,2,1}}; 
-    std::cout << "yes";
     kdtree tree(z,1); 
     std::pair<Eigen::MatrixXd, Eigen::VectorXd> XtXXtY; 
     XtXXtY = tree.find_XtXXtY({2,3,4,1,2}); 
