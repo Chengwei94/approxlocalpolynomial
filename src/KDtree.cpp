@@ -6,7 +6,13 @@
 #include "KDtree.h"
 #include <utility>
 
-using Eigen::MatrixXd;
+// Things left to do:
+//1. Change from passing by value to passing by constant reference to those available
+//2. Change from matrix to vector to matrix. 
+//3. Look at possible implementation without changing to vector (Bottleneck sorting in matrix form) 
+//4. R implementation
+//5. Print tree function
+//6. Change name of some functions to avoid ambiguity
 
 // [[Rcpp::plugins(cpp14)]]
 // [[Rcpp::depends(RcppEigen)]]
@@ -23,9 +29,34 @@ std::pair<T, U> operator+(const std::pair<T,U> & l, const std::pair<T,U> & r ) {
     return {l.first+r.first, l.second + r.second}; 
 } 
 
-std::pair<Eigen::MatrixXd, Eigen::VectorXd> tryout(Eigen::MatrixXd x , Eigen::VectorXd y){
-    std::pair<Eigen::MatrixXd, Eigen::VectorXd> t  = std::make_pair(x,y); 
-    return t+t; 
+inline double eval_kernel(int kcode, double z)
+{
+    double tmp;
+    switch(kcode)
+    {
+    case 1: return 3*(1-z*z)/4; // Epanechnikov
+    case 2: return 0.5; // rectangular
+    case 3: return 1-abs(z); // triangular
+    case 4: return 15*(1-z*z)*(1-z*z)/16; // quartic
+    case 5: 
+        tmp = 1-z*z;
+        return 35*tmp*tmp*tmp/32; // triweight
+    case 6: 
+        tmp = 1- z*z*z;
+        return 70 * tmp * tmp * tmp / 81; // tricube
+    case 7:
+        return M_PI * cos(M_PI*z/2) / 4; // cosine
+    case 21:
+        return exp(-z*z/2) / sqrt(2*M_PI); // gauss
+    case 22:
+        return 1/(exp(z)+2+exp(-z)); // logistic
+    case 23:
+        return 2/(M_PI*(exp(z)+exp(-z))); // sigmoid
+    case 24:
+        return exp(-abs(z)/sqrt(2)) * sin(abs(z)/sqrt(2)+M_PI/4); // silverman
+ //   default: Rcpp::stop("Unsupported kernel"); 
+    }
+    return 0;
 }
 
 std::pair<double,double> calculate_weight(int kcode, point_t query_pt, point_t max_dim, point_t min_dim) { 
@@ -180,11 +211,13 @@ kdtree::kdtree(all_point_t points, int N_min) {
 
 std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::get_XtXXtY(point_t query_pt, point_t max_dim, point_t min_dim, std::unique_ptr<kdnode>& root){
     std::pair<double,double> weights;
-    std :: cout << " weights " << std::endl; 
+    std :: cout << " weights calcualtion" << std::endl; 
     weights = calculate_weight(20, query_pt, max_dim, min_dim);  // calculate max and min weight 
-    std :: cout << " weights1 " << std::endl; 
+    std :: cout << " weights calculation success " << std::endl; 
+
     double max_weight = weights.first;                      
     double min_weight = weights.second;
+
     if (max_weight = min_weight)       // if condition fufilled          
         return std::make_pair(root->XtX, root->XtY);
     else if (root->n_below <= 1)    // finding out that it is a leaf node  (Add N_min for later) 
@@ -195,39 +228,39 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::get_XtXXtY(point_t query_pt,
     }
 }   // return sumY, else return sumY of both nodes if weight satisfy condition 
 
-std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::find_XtXXtY(point_t query_pt) {
+std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::getapprox_XtXXtY(point_t query_pt, 
+                                                                     point_t max_dim,
+                                                                     point_t min_dim, 
+                                                                     std::unique_ptr<kdnode>& root,
+                                                                     double epsilon, 
+                                                                     double weight_sf){ //weights_so_far
+    std::pair<double,double> weights;
+    std :: cout << " weights calcualtion" << std::endl; 
+    weights = calculate_weight(20, query_pt, max_dim, min_dim);  // calculate max and min weight 
+    std :: cout << " weights calculation success " << std::endl; 
+
+    double max_weight = weights.first;                      
+    double min_weight = weights.second;
+
+    if (max_weight - min_weight <= 2*epsilon*(weights_sf + root->n_below*min_weight)) {
+        weights += 0.5*(max_weight + min_weight);                     // if condition fufilled          
+        return std::make_pair(root->XtX, root->XtY);
+    }
+    else if (root->n_below <= 1) {   // finding out that it is a leaf node  (Add N_min for later) 
+        weights += 0.5*(max_weight + min_weight);           //smth wrong here need to edit later
+        return std::make_pair(root->XtX, root->XtY); 
+    }
+    else { 
+        return get_approxXtXXtY(query_pt, root->left_child->max_dim, root->left_child->min_dim, root->left_child ) + 
+        get_XtXXtY(query_pt, root->right_child->max_dim, root->right_child->min_dim, root->right_child); 
+    }
+}   // return sumY, else return sumY of both nodes if weight satisfy condition 
+
+
+std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::find_XtXXtY(point_t query_pt) { // add approximate
     return get_XtXXtY(query_pt, root->max_dim, root->min_dim, root);
 }
 
-inline double eval_kernel(int kcode, double z)
-{
-    double tmp;
-    switch(kcode)
-    {
-    case 1: return 3*(1-z*z)/4; // Epanechnikov
-    case 2: return 0.5; // rectangular
-    case 3: return 1-abs(z); // triangular
-    case 4: return 15*(1-z*z)*(1-z*z)/16; // quartic
-    case 5: 
-        tmp = 1-z*z;
-        return 35*tmp*tmp*tmp/32; // triweight
-    case 6: 
-        tmp = 1- z*z*z;
-        return 70 * tmp * tmp * tmp / 81; // tricube
-    case 7:
-        return M_PI * cos(M_PI*z/2) / 4; // cosine
-    case 21:
-        return exp(-z*z/2) / sqrt(2*M_PI); // gauss
-    case 22:
-        return 1/(exp(z)+2+exp(-z)); // logistic
-    case 23:
-        return 2/(M_PI*(exp(z)+exp(-z))); // sigmoid
-    case 24:
-        return exp(-abs(z)/sqrt(2)) * sin(abs(z)/sqrt(2)+M_PI/4); // silverman
- //   default: Rcpp::stop("Unsupported kernel"); 
-    }
-    return 0;
-}
 Eigen::VectorXd solve_beta(int kcode, const Eigen::MatrixXd &XtX, const Eigen::MatrixXd &XtY) {
         std::cout << "normal equation method used(chloesky)" << "\n"; 
         return(XtX.ldlt().solve(XtY));
@@ -244,7 +277,6 @@ Eigen::VectorXd locpoly(all_point_t points, int kcode, int N_min){
 x = as.matrix(c(1,2))   
 rcpp_eigentryout(x)
 */
-
 int main(){ 
     all_point_t z = {{1,2,3,1,2},{2,3,4,2,2},{2,2,3,1,1},{4,3,4,1,1},{1,5,3,1,1},{2,3,8,2,1}}; 
     kdtree tree(z,1); 
