@@ -3,10 +3,9 @@
 #include <memory> 
 #include <vector>
 
-using point_t = std::vector< double >;
-using all_point_t = std::vector<point_t>; 
+using all_point_t = std::vector<Eigen::VectorXd>; 
 
-std::pair<double, double> calculate_weight(int, point_t, point_t, point_t); 
+std::pair<double, double> calculate_weight(int, Eigen::VectorXd, std::vector<double>, std::vector<double>); 
 
 double eval_kernel(int,double);
 
@@ -16,7 +15,7 @@ Eigen::VectorXd locpoly(all_point_t, int, int);
 
 template<typename T, typename U> 
 std::pair<T, U> operator+(const std::pair<T,U>&, const std::pair<T,U>&);
-all_point_t convert_to_vector(Eigen::MatrixXd); 
+all_point_t convert_to_vector(Eigen::MatrixXd);
 
 class kdnode{ 
             public: 
@@ -44,10 +43,10 @@ class kdtree{
         std::unique_ptr<kdnode> root; 
         std::unique_ptr<kdnode> leaf;
         explicit kdtree(all_point_t, int); 
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> get_XtXXtY(point_t, point_t, point_t, std::unique_ptr<kdnode>&);
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> getapprox_XtXXtY(point_t, point_t, point_t, std::unique_ptr<kdnode>&, double, double);
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> find_XtXXtY(point_t, int, double);
-        std::unique_ptr<kdnode> build_tree(all_point_t::iterator, all_point_t::iterator, int, double, int, size_t, point_t, point_t);
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> get_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>&);
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> getapprox_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>&, double, double);
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> find_XtXXtY(Eigen::VectorXd, int, double);
+        std::unique_ptr<kdnode> build_tree(all_point_t::iterator, all_point_t::iterator, int, double, int, size_t, std::vector<double>, std::vector<double>);
 
 
     
