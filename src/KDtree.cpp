@@ -24,7 +24,7 @@ kdnode::kdnode() = default;  // constructor
 kdnode::kdnode(kdnode&& rhs) = default;  //move 
 kdnode::~kdnode() = default;  // destructor  
 
-template <typename T, typename U>                                               // overloading operator for addition 
+template <typename T, typename U>                            // overloading operator for addition betweeen pairs
 std::pair<T, U> operator+(const std::pair<T,U> & l, const std::pair<T,U> & r ) {
     return {l.first+r.first, l.second + r.second}; 
 } 
@@ -219,7 +219,7 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::get_XtXXtY(point_t query_pt,
     double min_weight = weights.second;
 
     if (max_weight = min_weight)       // if condition fufilled          
-        return std::make_pair(root->XtX, root->XtY);
+        return std::make_pair(max_weight*root->XtX, max_weight*root->XtY);
     else if (root->n_below <= 1)    // finding out that it is a leaf node  (Add N_min for later) 
         return std::make_pair(root->XtX, root->XtY); 
     else { 
@@ -242,24 +242,29 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::getapprox_XtXXtY(point_t que
     double max_weight = weights.first;                      
     double min_weight = weights.second;
 
-    if (max_weight - min_weight <= 2*epsilon*(weights_sf + root->n_below*min_weight)) {
-        weights += 0.5*(max_weight + min_weight);                     // if condition fufilled          
+    if (max_weight - min_weight <= 2*epsilon*(weight_sf + root->n_below*min_weight)) {
+        weight_sf += 0.5*(max_weight + min_weight);                     // if condition fufilled          
         return std::make_pair(root->XtX, root->XtY);
     }
     else if (root->n_below <= 1) {   // finding out that it is a leaf node  (Add N_min for later) 
-        weights += 0.5*(max_weight + min_weight);           //smth wrong here need to edit later
+        weight_sf += 0.5*(max_weight + min_weight);           //smth wrong here need to edit later
         return std::make_pair(root->XtX, root->XtY); 
     }
     else { 
-        return get_approxXtXXtY(query_pt, root->left_child->max_dim, root->left_child->min_dim, root->left_child ) + 
-        get_XtXXtY(query_pt, root->right_child->max_dim, root->right_child->min_dim, root->right_child); 
+        return getapprox_XtXXtY(query_pt, root->left_child->max_dim, root->left_child->min_dim, root->left_child, epsilon, weight_sf ) + 
+        getapprox_XtXXtY(query_pt, root->right_child->max_dim, root->right_child->min_dim, root->right_child, epsilon, weight_sf); 
     }
 }   // return sumY, else return sumY of both nodes if weight satisfy condition 
 
-
-std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::find_XtXXtY(point_t query_pt) { // add approximate
-    return get_XtXXtY(query_pt, root->max_dim, root->min_dim, root);
+std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::find_XtXXtY(point_t query_pt, int method = 1, double epsilon = 0.05) { // add approximate
+    if (method == 1) {
+        return get_XtXXtY(query_pt, root->max_dim, root->min_dim, root);
+    }
+    else {
+        return getapprox_XtXXtY(query_pt, root->max_dim, root->min_dim, root, epsilon, 0); 
+    }
 }
+
 
 Eigen::VectorXd solve_beta(int kcode, const Eigen::MatrixXd &XtX, const Eigen::MatrixXd &XtY) {
         std::cout << "normal equation method used(chloesky)" << "\n"; 
@@ -272,6 +277,14 @@ Eigen::VectorXd locpoly(all_point_t points, int kcode, int N_min){
     XtXXtY = tree.find_XtXXtY({1,2,3});  // add N_min for later 
     return solve_beta(kcode, XtXXtY.first, XtXXtY.second);  
 }
+/*
+all_point_t convert_to_vector(Eigen::MatrixXd original_points){
+    std::vector<Eigen::VectorXd> points; 
+    for (int i = 0; i <original_points.rows(); i++){
+        points.push_back(original_points.row(i));
+    }
+    return points; 
+}*/
 
 /***R
 x = as.matrix(c(1,2))   
@@ -281,7 +294,7 @@ int main(){
     all_point_t z = {{1,2,3,1,2},{2,3,4,2,2},{2,2,3,1,1},{4,3,4,1,1},{1,5,3,1,1},{2,3,8,2,1}}; 
     kdtree tree(z,1); 
     std::pair<Eigen::MatrixXd, Eigen::VectorXd> XtXXtY; 
-    XtXXtY = tree.find_XtXXtY({2,3,4,1,2}); 
+    XtXXtY = tree.find_XtXXtY({2,3,4,1,2},2); 
     solve_beta(1, XtXXtY.first, XtXXtY.second);
 
      Eigen::MatrixXd A = Eigen::MatrixXd::Random(3, 3);
