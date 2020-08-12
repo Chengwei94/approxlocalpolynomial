@@ -11,11 +11,25 @@ double eval_kernel(int,double);
 
 Eigen::VectorXd solve_beta(Eigen::MatrixXd, Eigen::VectorXd);
 
-Eigen::VectorXd locpoly(all_point_t, int, int);
+Eigen::VectorXd locpoly(Eigen::MatrixXd);
+
+void findXtX(Eigen::VectorXd);
+
+Eigen::MatrixXd form_ll_XtX(const Eigen::MatrixXd &, const Eigen::VectorXd & ); 
+
+Eigen::VectorXd form_ll_XtY(const Eigen::VectorXd &, const Eigen::VectorXd & );
+
 
 template<typename T, typename U> 
 std::pair<T, U> operator+(const std::pair<T,U>&, const std::pair<T,U>&);
+
 all_point_t convert_to_vector(Eigen::MatrixXd);
+
+all_point_t convert_to_query(Eigen::MatrixXd);
+
+template<typename T> 
+std::ostream& operator<<(std::ostream&, const std::vector<T>&); 
+
 
 class kdnode{ 
             public: 
@@ -52,3 +66,4 @@ class kdtree{
     
 };
 
+void test_traversetree(std::unique_ptr<kdnode> &);

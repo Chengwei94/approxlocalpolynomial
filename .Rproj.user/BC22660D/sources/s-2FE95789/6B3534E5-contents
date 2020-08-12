@@ -1,3 +1,0 @@
-useDynLib(localweightedreg)
-import(RcppEigen)
-importFrom(Rcpp, evalCpp)
