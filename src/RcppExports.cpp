@@ -6,20 +6,20 @@
 
 using namespace Rcpp;
 
-// rcpp_eigentryout
-double rcpp_eigentryout(const Eigen::MatrixXd& x);
-RcppExport SEXP _localweightedreg_rcpp_eigentryout(SEXP xSEXP) {
+// locpoly
+Eigen::VectorXd locpoly(Eigen::MatrixXd original_points);
+RcppExport SEXP _localweightedreg_locpoly(SEXP original_pointsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpp_eigentryout(x));
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type original_points(original_pointsSEXP);
+    rcpp_result_gen = Rcpp::wrap(locpoly(original_points));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_localweightedreg_rcpp_eigentryout", (DL_FUNC) &_localweightedreg_rcpp_eigentryout, 1},
+    {"_localweightedreg_locpoly", (DL_FUNC) &_localweightedreg_locpoly, 1},
     {NULL, NULL, 0}
 };
 

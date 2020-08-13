@@ -2,31 +2,22 @@
 #include <iostream>     
 #include <memory> 
 #include <vector>
+#include <iostream>
+#include <chrono>
 
 using all_point_t = std::vector<Eigen::VectorXd>; 
 
-std::pair<double, double> calculate_weight(int, Eigen::VectorXd, std::vector<double>, std::vector<double>); 
-
-double eval_kernel(int,double);
-
+std::pair<double, double> calculate_weight(int, Eigen::VectorXd, std::vector<double>, std::vector<double>, double); 
+double eval_kernel(int, double, double);
 Eigen::VectorXd solve_beta(Eigen::MatrixXd, Eigen::VectorXd);
-
-Eigen::VectorXd locpoly(Eigen::MatrixXd);
-
+Eigen::VectorXd locpoly(Eigen::MatrixXd, double, double);
 void findXtX(Eigen::VectorXd);
-
 Eigen::MatrixXd form_ll_XtX(const Eigen::MatrixXd &, const Eigen::VectorXd & ); 
-
 Eigen::VectorXd form_ll_XtY(const Eigen::VectorXd &, const Eigen::VectorXd & );
-
-
 template<typename T, typename U> 
 std::pair<T, U> operator+(const std::pair<T,U>&, const std::pair<T,U>&);
-
 all_point_t convert_to_vector(Eigen::MatrixXd);
-
 all_point_t convert_to_query(Eigen::MatrixXd);
-
 template<typename T> 
 std::ostream& operator<<(std::ostream&, const std::vector<T>&); 
 
@@ -57,13 +48,26 @@ class kdtree{
         std::unique_ptr<kdnode> root; 
         std::unique_ptr<kdnode> leaf;
         explicit kdtree(all_point_t, int); 
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> get_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>&);
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> getapprox_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>&, double, double);
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> find_XtXXtY(Eigen::VectorXd, int, double);
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> get_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>& ,double );
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> getapprox_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>&, double, double, double);
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> find_XtXXtY(Eigen::VectorXd, int, double, double);
         std::unique_ptr<kdnode> build_tree(all_point_t::iterator, all_point_t::iterator, int, double, int, size_t, std::vector<double>, std::vector<double>);
 
-
-    
 };
+
+
+class Timer
+{
+    public:
+        Timer();
+        void reset();
+        double elapsed() const;
+
+    private:
+        typedef std::chrono::high_resolution_clock clock_;
+        typedef std::chrono::duration<double, std::ratio<1> > second_;
+        std::chrono::time_point<clock_> beg_;
+};
+
 
 void test_traversetree(std::unique_ptr<kdnode> &);

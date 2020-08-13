@@ -7,17 +7,26 @@
 #include "KDtree.h"
 #include <utility>
 #include <iostream>
+#include <chrono>
+
 
 // Things left to do:
 //1. Change from passing by value to passing by constant reference to those available
-//2. Change from matrix to vector to matrix. 
-//3. Look at possible implementation without changing to vector (Bottleneck sorting in matrix form) 
-//4. R implementation
 //5. Print tree function
 //6. Change name of some functions to avoid ambiguity
 
 // [[Rcpp::plugins(cpp14)]]
 // [[Rcpp::depends(RcppEigen)]]
+
+
+Timer::Timer() : beg_(clock_::now()) {}
+    
+void Timer::reset() { beg_ = clock_::now(); }
+
+double Timer::elapsed() const { 
+        return std::chrono::duration_cast<second_>
+            (clock_::now() - beg_).count(); }
+
 
 kdtree::kdtree() = default; 
 kdtree::~kdtree() = default; 
@@ -44,10 +53,10 @@ std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
     return out;
 }
 
-inline double eval_kernel(int kcode, double z)
+inline double eval_kernel(int kcode, double z, double bandwidth)
 {
     double tmp;
-    if(abs(z) > 1) 
+    if(abs(z) > bandwidth) 
         return 0;
     else { 
         switch(kcode)
@@ -78,34 +87,32 @@ inline double eval_kernel(int kcode, double z)
     return 0;
 }
 
-std::pair<double,double> calculate_weight(int kcode, Eigen::VectorXd query_pt, std::vector<double> max_dim, std::vector<double> min_dim) { 
+std::pair<double,double> calculate_weight(int kcode, Eigen::VectorXd query_pt, std::vector<double> max_dim, std::vector<double> min_dim, double bandwidth) { 
     if(max_dim.size()!= query_pt.size()){
   //      std::cout << max_dim.size() << query_pt.size(); 
         std::cout << "error in dimensions"; 
         throw std::exception(); 
     }
-    double max_weight = 0;
-    double min_weight = 0; 
+    double max_weight = 1;
+    double min_weight = 1; 
     double max_dist = 0; 
     double min_dist = 0;
     for(int i=0; i < max_dim.size(); i++)
         { 
             if (query_pt(i) <= max_dim.at(i) && query_pt(i) >= min_dim.at(i)) {
-                max_dist += std::pow(std::max(abs(max_dim.at(i) - query_pt(i)), abs(min_dim.at(i) - query_pt(i))),2);
+                min_weight *= eval_kernel(kcode, (std::max(abs(max_dim.at(i) - query_pt(i)), abs(min_dim.at(i) - query_pt(i))))/bandwidth, bandwidth) / bandwidth;
             }
             else if (abs(query_pt(i) - max_dim.at(i)) > abs(query_pt(i) - min_dim.at(i))){
-                max_dist += std::pow(query_pt(i) - max_dim.at(i),2);
-                min_dist += std::pow(query_pt(i) - min_dim.at(i),2); 
+                min_weight *= eval_kernel(kcode, (query_pt(i) - max_dim.at(i))/bandwidth, bandwidth) / bandwidth;
+                max_weight *= eval_kernel(kcode, (query_pt(i) - min_dim.at(i))/bandwidth, bandwidth) / bandwidth; 
             }
             else{
-                max_dist += std::pow(query_pt(i) - min_dim.at(i),2); 
-                min_dist += std::pow(query_pt(i) - max_dim.at(i),2); 
+                min_weight *= eval_kernel(kcode, (query_pt(i) - min_dim.at(i))/bandwidth, bandwidth) / bandwidth; 
+                max_weight *= eval_kernel(kcode, (query_pt(i) - max_dim.at(i))/bandwidth, bandwidth) / bandwidth; 
             }
         }
 //    std::cout <<"max_dist =" <<max_dist << std::endl; 
 //    std::cout <<"min_dist =" <<min_dist << std::endl; 
-    max_weight =  eval_kernel(kcode, sqrt(min_dist));  //sqrt of dist to get euclidean distance
-    min_weight = eval_kernel(kcode, sqrt(max_dist));  
 //    std::cout << "max_weight =" << max_weight << "\n"; 
 //    std::cout << "min_weight =" << min_weight << "\n";
     return std::make_pair(max_weight, min_weight); 
@@ -243,30 +250,28 @@ kdtree::kdtree(all_point_t points, int N_min) {
             }
         }
     } 
-    for (int i =0; i< points[0].size()-1; i++) { 
-//        std::cout << max_dim[i]; 
-//        std::cout << min_dim[i] << std::endl; 
-    }
 
    //  std::cout << "kdtree initialized "<< std::endl; 
      root = build_tree(points.begin(), points.end(), 1, 1, N_min, len, max_dim, min_dim);
    
 }
 
-std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::get_XtXXtY(Eigen::VectorXd query_pt, std::vector<double> max_dim, std::vector<double> min_dim, std::unique_ptr<kdnode>& root){
+std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::get_XtXXtY(Eigen::VectorXd query_pt, std::vector<double> max_dim, std::vector<double> min_dim, std::unique_ptr<kdnode>& root , double bandwidth){
     std::pair<double,double> weights;
-    weights = calculate_weight(20, query_pt, max_dim, min_dim);  // calculate max and min weight 
+    weights = calculate_weight(20, query_pt, max_dim, min_dim, bandwidth);  // calculate max and min weight 
 
     double max_weight = weights.first;                      
     double min_weight = weights.second;
 
     if (max_weight = min_weight)       // if condition fufilled          
         return std::make_pair(max_weight*root->XtX, max_weight*root->XtY);
-    else if (root->n_below <= 1)    // finding out that it is a leaf node  (Add N_min for later) 
-        return std::make_pair(root->XtX, root->XtY); 
+    else if (root->n_below <= 1){    // finding out that it is a leaf node  (Add N_min for later) 
+        double weight = 0.5*(max_weight + min_weight); 
+        return std::make_pair(weight*root->XtX, weight*root->XtY); 
+    }
     else { 
-        return get_XtXXtY(query_pt, root->left_child->max_dim, root->left_child->min_dim, root->left_child ) + 
-        get_XtXXtY(query_pt, root->right_child->max_dim, root->right_child->min_dim, root->right_child); 
+        return get_XtXXtY(query_pt, root->left_child->max_dim, root->left_child->min_dim, root->left_child, bandwidth) + 
+        get_XtXXtY(query_pt, root->right_child->max_dim, root->right_child->min_dim, root->right_child, bandwidth); 
     }
 }   // return sumY, else return sumY of both nodes if weight satisfy condition 
 
@@ -275,16 +280,17 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::getapprox_XtXXtY(Eigen::Vect
                                                                      std::vector<double> min_dim, 
                                                                      std::unique_ptr<kdnode>& root,
                                                                      double epsilon, 
-                                                                     double weight_sf){ //weights_so_far
+                                                                     double weight_sf,
+                                                                     double bandwidth){ //weights_so_far
     std::pair<double,double> weights;
   //  std :: cout << " weights calcualtion" << std::endl; 
-    weights = calculate_weight(1, query_pt, max_dim, min_dim);  // calculate max and min weight 
+    weights = calculate_weight(1, query_pt, max_dim, min_dim, bandwidth);  // calculate max and min weight 
   //  std :: cout << " weights calculation success " << std::endl; 
 
     double max_weight = weights.first;                      
     double min_weight = weights.second;
 
-    if (max_weight - min_weight <= 2*epsilon*(weight_sf + root->n_below*min_weight)) {
+    if (max_weight - min_weight <= 2 * epsilon * (weight_sf + root->n_below*min_weight)) {
         double weight = 0.5*(max_weight + min_weight);
         weight_sf += weight;                     // if condition fufilled          
         return std::make_pair(weight*root->XtX, weight*root->XtY);
@@ -295,21 +301,21 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::getapprox_XtXXtY(Eigen::Vect
         return std::make_pair(weight*root->XtX, weight*root->XtY); 
     }
     else { 
-        return getapprox_XtXXtY(query_pt, root->left_child->max_dim, root->left_child->min_dim, root->left_child, epsilon, weight_sf ) + 
-        getapprox_XtXXtY(query_pt, root->right_child->max_dim, root->right_child->min_dim, root->right_child, epsilon, weight_sf); 
+        return getapprox_XtXXtY(query_pt, root->left_child->max_dim, root->left_child->min_dim, root->left_child, epsilon, weight_sf, bandwidth ) + 
+        getapprox_XtXXtY(query_pt, root->right_child->max_dim, root->right_child->min_dim, root->right_child, epsilon, weight_sf, bandwidth); 
     }
 }   // return sumY, else return sumY of both nodes if weight satisfy condition 
 
-std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::find_XtXXtY(Eigen::VectorXd query_pt, int method = 1, double epsilon = 0.05) { // add approximate
+std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::find_XtXXtY(Eigen::VectorXd query_pt, int method = 1, double epsilon = 0.05, double bandwidth = 0.2) { // add approximate
     if (method == 1) {
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> XtXXtY = get_XtXXtY(query_pt, root->max_dim, root->min_dim, root);
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> XtXXtY = get_XtXXtY(query_pt, root->max_dim, root->min_dim, root, bandwidth);
         std::cout<<XtXXtY.second << "\n";
         Eigen::MatrixXd ll_XtX = form_ll_XtX(XtXXtY.first, query_pt);
         Eigen::VectorXd ll_XtY = form_ll_XtY(XtXXtY.second, query_pt);
         return std::make_pair(ll_XtX , ll_XtY); 
     }
     else {
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> XtXXtY = getapprox_XtXXtY(query_pt, root->max_dim, root->min_dim, root, epsilon, 0); 
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> XtXXtY = getapprox_XtXXtY(query_pt, root->max_dim, root->min_dim, root, epsilon, 0, bandwidth); 
         Eigen::MatrixXd ll_XtX = form_ll_XtX(XtXXtY.first, query_pt); 
         Eigen::VectorXd ll_XtY = form_ll_XtY(XtXXtY.second, query_pt);
 //      std::cout << ll_XtX << "\n"; 
@@ -344,20 +350,26 @@ Eigen::VectorXd solve_beta(int kcode, const Eigen::MatrixXd &XtX, const Eigen::M
         return(XtX.ldlt().solve(XtY));
 }
 // [[Rcpp::export]]
-Eigen::VectorXd locpoly(Eigen::MatrixXd original_points){ 
+Eigen::VectorXd locpoly(Eigen::MatrixXd original_points, double epsilon, double bandwidth){ 
     all_point_t points; 
     all_point_t query_pts;
     points = convert_to_vector(original_points); 
-    kdtree tree(points, 1); 
+    kdtree tree(points, 1);
+   // double t = tmr.elapsed();  
+   // std::cout << "building tree time =" << t << std::endl;
+   // tmr.reset();
     Eigen::VectorXd results(points.size());
     query_pts = convert_to_query(original_points);
+//    Timer tmr; 
     for (int i = 0; i< points.size(); i++) { 
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> XtXXtY; 
-        XtXXtY = tree.find_XtXXtY(query_pts.at(i), 2); 
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> XtXXtY;
+        XtXXtY = tree.find_XtXXtY(query_pts.at(i), 2, epsilon, bandwidth);
         Eigen::VectorXd f; 
         f = solve_beta(1, XtXXtY.first, XtXXtY.second);
         results(i) = f(0); 
     }
+//    double t = tmr.elapsed();
+//    std::cout << "find XtXXtY" << t << std::endl;
     std::cout <<"done" <<"\n";
     return results; 
 }
@@ -397,18 +409,21 @@ void findXtX(Eigen::VectorXd z ){
     std::cout << "test case" << X*Y << std::endl; 
 }
 */
-/*
+
 /***R
-x = as.matrix(c(1,2))   
-rcpp_eigentryout(x)
+locpoly()
 */
+
+/*
 int main(){ 
     
     // test kdtree; 
-    Eigen::MatrixXd test1 = Eigen::MatrixXd::Random(2000,2);
+    Eigen::MatrixXd test1 = Eigen::MatrixXd::Random(1000, 2);
  //   std::cout << test1 << "\n";
  //   convert_to_query(test1); 
-    std::cout << locpoly(test1);
+    std::cout << locpoly(test1, 0.05, 0.2);
+
+}
     // std::cout << test1; 
  //   all_point_t z = convert_to_vector(test1);
  //   kdtree tree(z,1);
@@ -427,19 +442,13 @@ int main(){
     Eigen::MatrixXd new_XtX;
     new_XtX = form_ll_XtX(XtX,query_pt);
     std::cout << new_XtX;  
-
+*/
  //   std::cout << f; 
 
-     
-  //  std::cout << A << "\n";
-   // std::cout << b << "\n";
-   // std::pair<Eigen::MatrixXd, Eigen::VectorXd> x = tryout(A,b); 
-   // std:: cout << x.first << '\n'; 
-   // std:: cout << x.second << "\n";
 
-   // std::cout << calculate_inverse(1,A,b); */
 
-}
-*/
+
+
+
 
 
