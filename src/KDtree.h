@@ -38,11 +38,12 @@ class kdtree{
         ~kdtree();  
         std::unique_ptr<kdnode> root; 
         std::unique_ptr<kdnode> leaf;
-        explicit kdtree(all_point_t, int); 
+        std::unique_ptr<kdnode> build_tree(all_point_t::iterator, all_point_t::iterator, int, double, int, size_t, std::vector<double>, std::vector<double>);
+        std::unique_ptr<kdnode> build_exacttree(all_point_t::iterator, all_point_t::iterator, int, double, int, size_t, std::vector<double>, std::vector<double>);
+        explicit kdtree(all_point_t, int, int); 
         std::pair<Eigen::MatrixXd, Eigen::VectorXd> get_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>& ,double );
         std::pair<Eigen::MatrixXd, Eigen::VectorXd> getapprox_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>&, double, double, double);
         std::pair<Eigen::MatrixXd, Eigen::VectorXd> find_XtXXtY(Eigen::VectorXd, int, double, double);
-        std::unique_ptr<kdnode> build_tree(all_point_t::iterator, all_point_t::iterator, int, double, int, size_t, std::vector<double>, std::vector<double>);
         // test functions; 
         void test_XtX(Eigen::MatrixXd);
         void test_XtY(Eigen::MatrixXd);

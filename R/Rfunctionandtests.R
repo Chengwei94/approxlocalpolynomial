@@ -1,7 +1,7 @@
 library(MASS)
 plot(mcycle)
 motor_matrix = as.matrix(mcycle)
-system.time({y = locpoly(motor_matrix, 0.00, 0.2)})
+system.time({y = locpoly(motor_matrix, 0.00, 10)})
 y = cbind(motor_matrix[,'times'],y)
 plot(motor_matrix)
 lines(y,col = 'red')

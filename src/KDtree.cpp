@@ -67,8 +67,7 @@ void test_traversetree(std::unique_ptr<kdnode>& root){
     }
 }
 
-
-std::unique_ptr<kdnode> kdtree::build_tree(all_point_t::iterator start, all_point_t::iterator end, 
+std::unique_ptr<kdnode> kdtree::build_exacttree(all_point_t::iterator start, all_point_t::iterator end, 
                                            int split_d, double split_v, int N_min, size_t len,
                                             std::vector<double> max_dim_, std::vector<double> min_dim_){
 
@@ -81,11 +80,10 @@ std::unique_ptr<kdnode> kdtree::build_tree(all_point_t::iterator start, all_poin
     newnode->n_below = len;    
     newnode->max_dim = max_dim_;
     newnode->min_dim = min_dim_;
-    //std::cout << max_dim_ << "\n";
-    //std::cout << min_dim_ << "\n";
+  //  std::cout << "max_dim =" << max_dim_ << "\n";
+  //  std::cout << "min_dim =" << min_dim_ << "\n";
 
-    if (end-start <= N_min) {
-       // std::cout << "leaf node created" << std::endl;
+    if (end-start <= 1) {
         newnode->left_child = nullptr;              // leaf 
         newnode->right_child = nullptr;             // leaf      
         Eigen::MatrixXd XtX_; 
@@ -102,7 +100,18 @@ std::unique_ptr<kdnode> kdtree::build_tree(all_point_t::iterator start, all_poin
 //            std::cout << X << "\n";
             XtY_ = X*Y; 
             XtX_ = X*X.transpose();  
-        }   
+  /*          std::cout << "node created:" << "\n"; 
+            std::cout << "X" << "\n"; 
+            std::cout << X << "\n"; 
+            std::cout << "end of X" << "\n";
+            std::cout << "Y" << "\n";
+            std::cout << Y << "\n"; 
+            std::cout << "End of Y" << "\n"; */
+            for (auto j = 0; j < max_dim_.size(); j++) {
+                newnode->max_dim[j] = X(j); 
+                newnode->min_dim[j] = X(j); 
+            }
+         }   
          newnode->XtX = XtX_; 
          newnode->XtY = XtY_;  
  //        std::cout << "XtX" << newnode->XtX << "\n"; 
@@ -165,7 +174,112 @@ std::unique_ptr<kdnode> kdtree::build_tree(all_point_t::iterator start, all_poin
     return newnode;    
 }
 
-kdtree::kdtree(all_point_t points, int N_min) { 
+
+std::unique_ptr<kdnode> kdtree::build_tree(all_point_t::iterator start, all_point_t::iterator end, 
+                                           int split_d, double split_v, int N_min, size_t len,
+                                            std::vector<double> max_dim_, std::vector<double> min_dim_){
+
+   // std::cout <<" node created" << std::endl;             
+    std::unique_ptr<kdnode> newnode = std::make_unique<kdnode>();
+    if(end == start) {   
+        return newnode; 
+    }
+
+    newnode->n_below = len;    
+    newnode->max_dim = max_dim_;
+    newnode->min_dim = min_dim_;
+    std::cout << "max_dim =" << max_dim_ << "\n";
+    std::cout << "min_dim =" << min_dim_ << "\n";
+
+    if (end-start <= N_min) {
+       // std::cout << "leaf node created" << std::endl;
+        newnode->left_child = nullptr;              // leaf 
+        newnode->right_child = nullptr;             // leaf      
+        Eigen::MatrixXd XtX_; 
+        Eigen::VectorXd XtY_;                   
+        for (auto i = start; i != end; i ++){
+            Eigen::VectorXd XY = *i;    
+ //           std::cout << "XY" << "\n";
+ //           std::cout << XY << "\n";
+            Eigen::VectorXd Y = XY.tail<1>(); 
+//           std::cout << "Y" << "\n";
+ //           std::cout << Y << "\n";
+            Eigen::VectorXd X = XY.head(XY.size()-1); 
+//            std::cout << "X" << "\n";
+//            std::cout << X << "\n";
+            XtY_ = X*Y; 
+            XtX_ = X*X.transpose();  
+            std::cout << "node created:" << "\n"; 
+            std::cout << "X" << "\n"; 
+            std::cout << X << "\n"; 
+            std::cout << "end of X" << "\n";
+            std::cout << "Y" << "\n";
+            std::cout << Y << "\n"; 
+            std::cout << "End of Y" << "\n";
+         }   
+         newnode->XtX = XtX_; 
+         newnode->XtY = XtY_;  
+ //        std::cout << "XtX" << newnode->XtX << "\n"; 
+//       std::cout << "XtY" << newnode->XtY << "\n"; 
+    //     std::cout << "leaf node created" << std::endl; 
+         return newnode; 
+    }
+
+    else {  
+   //     std::cout << "node created start" << std::endl; 
+        size_t l_len = len/2  ;          // left length
+        size_t r_len = len - l_len;     // right length
+        auto middle = start + len/2;   // middle iterator 
+        int max = 0; 
+        int dim = 0;
+        for(int i = 0; i < newnode->max_dim.size(); i++){   
+            double variance = newnode->max_dim[i] - newnode->min_dim[i]; 
+            if(variance > max){
+                max = variance; 
+                dim = i; 
+            }
+        }
+       // std::cout << "l_len=" <<  l_len <<"\n";
+       // std::cout << "r_len=" <<  r_len <<"\n";
+
+        newnode -> split_d = dim; 
+        int vector_dim = dim + 1;  
+
+        std::nth_element(start, middle, end, [vector_dim](const Eigen::VectorXd& a, const Eigen::VectorXd & b) {return 
+        a(vector_dim) < b(vector_dim);    
+        });           
+
+        newnode->split_v = (*middle)[vector_dim];    //  vector_dim used as vector has two more dimension than max_dim.
+
+        //std::cout << "split_d =" << newnode->split_d <<std::endl; 
+        //std::cout << "split_v =" << newnode->split_v <<std::endl;
+
+        max_dim_[dim] = newnode->split_v; 
+        min_dim_[dim] = newnode->split_v;
+
+    //    std::cout << "node created end" << std::endl; 
+
+        newnode-> left_child = build_tree(start, middle, newnode->split_d, newnode->split_v, N_min, l_len, max_dim_, newnode->min_dim);
+        newnode-> right_child = build_tree(middle, end, newnode->split_d, newnode->split_v, N_min, r_len, newnode->max_dim, min_dim_);
+        
+        if ((newnode->left_child) && (newnode->right_child)){ 
+            newnode->XtX = newnode->left_child->XtX + newnode ->right_child->XtX;  // sumY = the sum of the bottom 2 nodes
+            newnode->XtY = newnode->left_child->XtY + newnode ->right_child->XtY;
+        } 
+        else if (newnode->left_child) {
+            newnode->XtY = newnode->left_child->XtY;
+            newnode->XtX = newnode->left_child->XtX;
+        }
+        else if (newnode->right_child) {
+            newnode->XtX = newnode->right_child->XtX; 
+            newnode->XtY = newnode->right_child->XtY; 
+        }   
+    }
+  //  std::cout << "no error found" << std::endl;
+    return newnode;    
+}
+
+kdtree::kdtree(all_point_t points, int N_min , int method) { 
     size_t len = points.size(); 
 
     std::vector<double> max_dim; 
@@ -186,9 +300,14 @@ kdtree::kdtree(all_point_t points, int N_min) {
             }
         }
     } 
+    if (method == 1) { 
+        root = build_exacttree(points.begin(), points.end(), 1, 1, N_min, len, max_dim, min_dim);
+    }
 
-   //  std::cout << "kdtree initialized "<< std::endl; 
-     root = build_tree(points.begin(), points.end(), 1, 1, N_min, len, max_dim, min_dim);
+    if (method == 2) { 
+    //  std::cout << "kdtree initialized "<< std::endl; 
+        root = build_tree(points.begin(), points.end(), 1, 1, N_min, len, max_dim, min_dim);
+    }
    
 }
 
@@ -289,7 +408,7 @@ std::pair<double,double> calculate_weight(int kcode, Eigen::VectorXd query_pt, s
 
 std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::get_XtXXtY(Eigen::VectorXd query_pt, std::vector<double> max_dim, std::vector<double> min_dim, std::unique_ptr<kdnode>& root , double bandwidth){
     std::pair<double,double> weights;
-    weights = calculate_weight(20, query_pt, max_dim, min_dim, bandwidth);  // calculate max and min weight 
+    weights = calculate_weight(1, query_pt, max_dim, min_dim, bandwidth);  // calculate max and min weight 
 
     double max_weight = weights.first;                      
     double min_weight = weights.second;
@@ -320,6 +439,13 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::getapprox_XtXXtY(Eigen::Vect
 
     double max_weight = weights.first;                      
     double min_weight = weights.second;
+
+    std::cout << "query_pt= " <<query_pt << "\n"; 
+    std::cout <<  "max_dim= "<< max_dim << "\n";  
+    std::cout << "min_dim= " <<min_dim << "\n"; 
+
+    std::cout << "w_max =" << max_weight <<"\n";
+    std::cout << "w_min =" << min_weight <<"\n"; 
 
     if (max_weight - min_weight <= 2 * epsilon * (weight_sf + root->n_below*min_weight)) {
         double weight = 0.5*(max_weight + min_weight);
@@ -365,8 +491,8 @@ Eigen::MatrixXd form_ll_XtX(const Eigen::MatrixXd& XtX, const Eigen::VectorXd& q
                                                              + query_pt * XtX.topRightCorner(1,XtX.cols()-1) 
                                                              - query_pt * XtX.topLeftCorner(1,1) * query_pt.transpose();                                             
     ll_XtX = XtX - extra_XtX; 
-    // return ll_XtX; 
-    return XtX;
+    return ll_XtX; 
+    //return XtX;
 }
 
 Eigen::VectorXd form_ll_XtY(const Eigen::VectorXd& XtY, const Eigen::VectorXd& query_pt){
@@ -374,8 +500,8 @@ Eigen::VectorXd form_ll_XtY(const Eigen::VectorXd& XtY, const Eigen::VectorXd& q
     Eigen::VectorXd ll_XtY(XtY.size());
     extra_XtY.bottomRows(XtY.size()-1) = query_pt * XtY.topRows(1); 
     ll_XtY = XtY - extra_XtY; 
-    //return ll_XtY;
-    return XtY;
+    return ll_XtY;
+    //return XtY;
 }
 
 Eigen::VectorXd solve_beta(int kcode, const Eigen::MatrixXd &XtX, const Eigen::MatrixXd &XtY) {
@@ -388,7 +514,7 @@ Eigen::VectorXd locpoly(Eigen::MatrixXd original_points, double epsilon, double 
     all_point_t points; 
     all_point_t query_pts;
     points = convert_to_vector(original_points); 
-    kdtree tree(points, 1);
+    kdtree tree(points, 1, 1);
    // double t = tmr.elapsed();  
    // std::cout << "building tree time =" << t << std::endl;
    // tmr.reset();
@@ -397,8 +523,9 @@ Eigen::VectorXd locpoly(Eigen::MatrixXd original_points, double epsilon, double 
     query_pts = convert_to_query(original_points);
 //    Timer tmr; 
     for (int i = 0; i< points.size(); i++) { 
+        std::cout << "new lap" << std::endl; 
         std::pair<Eigen::MatrixXd, Eigen::VectorXd> XtXXtY;
-        XtXXtY = tree.find_XtXXtY(query_pts.at(i), 2, epsilon, bandwidth);
+        XtXXtY = tree.find_XtXXtY(query_pts.at(i), 1, epsilon, bandwidth);
         Eigen::VectorXd f; 
         f = solve_beta(1, XtXXtY.first, XtXXtY.second);
         results(i) = f(0); 
@@ -408,6 +535,7 @@ Eigen::VectorXd locpoly(Eigen::MatrixXd original_points, double epsilon, double 
     std::cout <<"done" <<"\n";
     return results; 
 }
+
 
 void kdtree::test_XtX (Eigen::MatrixXd X){
     Eigen::MatrixXd XtX; 
@@ -457,28 +585,52 @@ void test_weight(){
     std::vector<double> max_dim = {0.4,0.5};
     std::vector<double> min_dim = {0.2,0.2};
     Eigen::VectorXd query_pt(max_dim.size());
-    query_pt << 0.5,0.5;
+    query_pt <<  -0.2,-0.2;
     std::pair<double, double> weights; 
-    weights = calculate_weight (1, query_pt, max_dim , min_dim, 1);
+    weights = calculate_weight (1, query_pt, max_dim , min_dim, 0.6);
     std::cout << "max weight =" << weights.first << "\n"; 
     std::cout << "min weight =" << weights.second<< "\n";  
 }
 /***R
 locpoly()
 */
-
+Eigen::VectorXd test_beta(Eigen::MatrixXd X, double bandwidth) {   // test function for calculating actual betas for exact 
+    Eigen::MatrixXd W = Eigen::MatrixXd::Zero(X.rows(), X.rows()) ;  
+    Eigen::MatrixXd X_design(X.rows(), X.cols()) ;
+    Eigen::VectorXd results(X_design.rows()); 
+    X_design.col(0) = Eigen::VectorXd::Ones(X.rows()); 
+    X_design.rightCols(X.cols()-1) = X.leftCols(X.cols()-1);
+    Eigen::VectorXd Y_design;
+    Y_design = X.rightCols(1); 
+    Eigen::MatrixXd X_design2 = X_design; 
+    for (int i = 0; i < X_design.rows(); i++){
+        Eigen::VectorXd X_query; 
+        X_query = X_design.row(i); 
+        for (int j =0; j< X_design.rows(); j++){
+            double weights = 1; 
+            for(int k = 1; k < X_design.cols(); k++) {
+                X_design2(j,k) = X_design(j,k) - X_query(k);
+                weights *= eval_kernel(1, X_design2(j,k)/bandwidth, bandwidth)/bandwidth;  
+            }     
+            W(j,j) = weights;            
+        }   
+        Eigen::VectorXd beta;
+        beta = (X_design2.transpose()*W * X_design2).ldlt().solve(X_design2.transpose()*W * Y_design);
+        results(i) = beta(0);
+    }       
+    return results;
+} 
 
 int main(){ 
-    test_weight();
+  // test_weight();
 
     // test kdtree; 
  //  Eigen::MatrixXd test1 = Eigen::MatrixXd::Random(1000, 2);
- //   Eigen::MatrixXd test2(7,3); 
-//  test2 << 2,4,3,5,4,3,2,5,7,2,6,8,2,1,2,3,5,4,3,2,6;
+      Eigen::MatrixXd test2(3,2); 
+      test2 << 0.2,0.4,0.5,0.5,0.3,0.3;
  //   std::cout << test2 <<"\n"
-
- //   std::cout << test1 << "\n";
- //   locpoly(test1, 0.05, 0.2);
+    std::cout << locpoly(test2, 0.00, 0.2) << "\n";
+    std::cout << test_beta(test2, 0.2); 
 
 }    
 // std::cout << test1; 
