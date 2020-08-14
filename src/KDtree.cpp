@@ -2,8 +2,8 @@
 #include <memory> 
 #include <vector>
 #include <functional> 
-//#include <Eigen/Dense>
-#include "RcppEigen.h"
+#include <Eigen/Dense>
+//#include "RcppEigen.h"
 #include "KDtree.h"
 #include <utility>
 #include <iostream>
@@ -457,8 +457,7 @@ void test_weight(){
     std::vector<double> max_dim = {0.4,0.5};
     std::vector<double> min_dim = {0.2,0.2};
     Eigen::VectorXd query_pt(max_dim.size());
-    query_pt << 0.5,0.5; 
-    std::cout << "not dead yet"; 
+    query_pt << 0.5,0.5;
     std::pair<double, double> weights; 
     weights = calculate_weight (1, query_pt, max_dim , min_dim, 1);
     std::cout << "max weight =" << weights.first << "\n"; 
@@ -468,7 +467,7 @@ void test_weight(){
 locpoly()
 */
 
-/*
+
 int main(){ 
     test_weight();
 
@@ -481,7 +480,7 @@ int main(){
  //   std::cout << test1 << "\n";
  //   locpoly(test1, 0.05, 0.2);
 
-} */    
+}    
 // std::cout << test1; 
 //   all_point_t z = convert_to_vector(test1);
 //   kdtree tree(z,1);
