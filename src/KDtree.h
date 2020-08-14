@@ -75,7 +75,7 @@ Eigen::VectorXd form_ll_XtY(const Eigen::VectorXd &, const Eigen::VectorXd & );
 Eigen::VectorXd solve_beta(Eigen::MatrixXd, Eigen::VectorXd);
 
 // R function
-Eigen::VectorXd locpoly(Eigen::MatrixXd, double, double);
+Eigen::VectorXd locpoly(Eigen::MatrixXd, double, double, int);
 
 
 // test functions
