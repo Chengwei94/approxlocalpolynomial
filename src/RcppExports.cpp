@@ -7,19 +7,24 @@
 using namespace Rcpp;
 
 // locpoly
-Eigen::VectorXd locpoly(Eigen::MatrixXd original_points);
-RcppExport SEXP _localweightedreg_locpoly(SEXP original_pointsSEXP) {
+Eigen::VectorXd locpoly(Eigen::MatrixXd original_points, double epsilon, double bandwidth, int method, int N_min, int kcode);
+RcppExport SEXP _localweightedreg_locpoly(SEXP original_pointsSEXP, SEXP epsilonSEXP, SEXP bandwidthSEXP, SEXP methodSEXP, SEXP N_minSEXP, SEXP kcodeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type original_points(original_pointsSEXP);
-    rcpp_result_gen = Rcpp::wrap(locpoly(original_points));
+    Rcpp::traits::input_parameter< double >::type epsilon(epsilonSEXP);
+    Rcpp::traits::input_parameter< double >::type bandwidth(bandwidthSEXP);
+    Rcpp::traits::input_parameter< int >::type method(methodSEXP);
+    Rcpp::traits::input_parameter< int >::type N_min(N_minSEXP);
+    Rcpp::traits::input_parameter< int >::type kcode(kcodeSEXP);
+    rcpp_result_gen = Rcpp::wrap(locpoly(original_points, epsilon, bandwidth, method, N_min, kcode));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_localweightedreg_locpoly", (DL_FUNC) &_localweightedreg_locpoly, 1},
+    {"_localweightedreg_locpoly", (DL_FUNC) &_localweightedreg_locpoly, 6},
     {NULL, NULL, 0}
 };
 

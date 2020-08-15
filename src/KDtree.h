@@ -42,9 +42,9 @@ class kdtree{
         std::unique_ptr<kdnode> build_tree(all_point_t::iterator, all_point_t::iterator, int, double, int, size_t, std::vector<double>, std::vector<double>);
         std::unique_ptr<kdnode> build_exacttree(all_point_t::iterator, all_point_t::iterator, int, double, int, size_t, std::vector<double>, std::vector<double>);
         explicit kdtree(all_point_t, int, int); 
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> get_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>& ,double );
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> getapprox_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>&, double , double);
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> find_XtXXtY(Eigen::VectorXd, int, double, double);
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> get_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>& ,double, int );
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> getapprox_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>&, double , double, int);
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> find_XtXXtY(Eigen::VectorXd, int, double, double, int);
         // test functions; 
         void test_XtX(Eigen::MatrixXd);
         void test_XtY(Eigen::MatrixXd);
@@ -76,7 +76,7 @@ Eigen::VectorXd form_ll_XtY(const Eigen::VectorXd &, const Eigen::VectorXd & );
 Eigen::VectorXd solve_beta(Eigen::MatrixXd, Eigen::VectorXd);
 
 // R function
-Eigen::VectorXd locpoly(Eigen::MatrixXd, double, double, int);
+Eigen::VectorXd locpoly(Eigen::MatrixXd, double, double, int, int);
 
 
 // test functions
