@@ -89,23 +89,12 @@ std::unique_ptr<kdnode> kdtree::build_exacttree(all_point_t::iterator start, all
         Eigen::VectorXd XtY_;                   
         for (auto i = start; i != end; i ++){
             Eigen::VectorXd XY = *i;    
- //           std::cout << "XY" << "\n";
- //           std::cout << XY << "\n";
             Eigen::VectorXd Y = XY.tail<1>(); 
-//           std::cout << "Y" << "\n";
- //           std::cout << Y << "\n";
             Eigen::VectorXd X = XY.head(XY.size()-1); 
-//            std::cout << "X" << "\n";
-//            std::cout << X << "\n";
+
             XtY_ = X*Y; 
             XtX_ = X*X.transpose();  
-  /*          std::cout << "node created:" << "\n"; 
-            std::cout << "X" << "\n"; 
-            std::cout << X << "\n"; 
-            std::cout << "end of X" << "\n";
-            std::cout << "Y" << "\n";
-            std::cout << Y << "\n"; 
-            std::cout << "End of Y" << "\n"; */
+
             for (auto j = 0; j < max_dim_.size(); j++) {
                 newnode->max_dim[j] = X(j+1); 
                 newnode->min_dim[j] = X(j+1); 
@@ -197,29 +186,14 @@ std::unique_ptr<kdnode> kdtree::build_tree(all_point_t::iterator start, all_poin
         Eigen::VectorXd XtY_;                   
         for (auto i = start; i != end; i ++){
             Eigen::VectorXd XY = *i;    
- //           std::cout << "XY" << "\n";
- //           std::cout << XY << "\n";
             Eigen::VectorXd Y = XY.tail<1>(); 
-//           std::cout << "Y" << "\n";
- //           std::cout << Y << "\n";
             Eigen::VectorXd X = XY.head(XY.size()-1); 
-//            std::cout << "X" << "\n";
-//            std::cout << X << "\n";
-/*            XtY_ = X*Y; 
+            XtY_ = X*Y; 
             XtX_ = X*X.transpose();  
-            std::cout << "node created:" << "\n"; 
-            std::cout << "X" << "\n"; 
-            std::cout << X << "\n"; 
-            std::cout << "end of X" << "\n";
-            std::cout << "Y" << "\n";
-            std::cout << Y << "\n"; 
-            std::cout << "End of Y" << "\n"; */
          }   
          newnode->XtX = XtX_; 
          newnode->XtY = XtY_;  
-         std::cout << "XtX" << newnode->XtX << "\n"; 
-         std::cout << "XtY" << newnode->XtY << "\n"; 
-    //     std::cout << "leaf node created" << std::endl; 
+
          return newnode; 
     }
 
@@ -279,7 +253,7 @@ std::unique_ptr<kdnode> kdtree::build_tree(all_point_t::iterator start, all_poin
 
 kdtree::kdtree(all_point_t points, int N_min , int method) { 
     size_t len = points.size(); 
-
+    weight_sf = 0;
     std::vector<double> max_dim; 
     std::vector<double> min_dim; 
 
@@ -430,7 +404,6 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::getapprox_XtXXtY(Eigen::Vect
                                                                      std::vector<double> min_dim, 
                                                                      std::unique_ptr<kdnode>& root,
                                                                      double epsilon, 
-                                                                     double weight_sf,
                                                                      double bandwidth){ //weights_so_far
     std::pair<double,double> weights;
   //  std :: cout << " weights calcualtion" << std::endl; 
@@ -443,7 +416,7 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::getapprox_XtXXtY(Eigen::Vect
  //   std::cout << "query_pt= " <<query_pt << "\n"; 
  //   std::cout <<  "max_dim= "<< max_dim << "\n";  
   //  std::cout << "min_dim= " <<min_dim << "\n"; 
-
+ //   std::cout << "weight_sf = " << weight_sf << "\n"; 
 //    std::cout << "w_max =" << max_weight <<"\n";
 //   std::cout << "w_min =" << min_weight <<"\n"; 
 
@@ -458,8 +431,8 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::getapprox_XtXXtY(Eigen::Vect
         return std::make_pair(weight*root->XtX, weight*root->XtY); 
     }
     else { 
-        return getapprox_XtXXtY(query_pt, root->left_child->max_dim, root->left_child->min_dim, root->left_child, epsilon, weight_sf, bandwidth ) + 
-        getapprox_XtXXtY(query_pt, root->right_child->max_dim, root->right_child->min_dim, root->right_child, epsilon, weight_sf, bandwidth); 
+        return getapprox_XtXXtY(query_pt, root->left_child->max_dim, root->left_child->min_dim, root->left_child, epsilon, bandwidth ) + 
+        getapprox_XtXXtY(query_pt, root->right_child->max_dim, root->right_child->min_dim, root->right_child, epsilon, bandwidth); 
     }
 }   // return sumY, else return sumY of both nodes if weight satisfy condition 
 
@@ -471,7 +444,8 @@ std::pair<Eigen::MatrixXd, Eigen::VectorXd> kdtree::find_XtXXtY(Eigen::VectorXd 
         return std::make_pair(ll_XtX , ll_XtY); 
     }
     else {
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> XtXXtY = getapprox_XtXXtY(query_pt, root->max_dim, root->min_dim, root, epsilon, 0, bandwidth); 
+        weight_sf = 0; 
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> XtXXtY = getapprox_XtXXtY(query_pt, root->max_dim, root->min_dim, root, epsilon, bandwidth); 
         Eigen::MatrixXd ll_XtX = form_ll_XtX(XtXXtY.first, query_pt); 
         Eigen::VectorXd ll_XtY = form_ll_XtY(XtXXtY.second, query_pt);
 //      std::cout << ll_XtX << "\n"; 
@@ -514,10 +488,11 @@ Eigen::VectorXd locpoly(Eigen::MatrixXd original_points, double epsilon, double 
     all_point_t query_pts;
     points = convert_to_vector(original_points); 
     kdtree tree(points, 1, method);
+    std::cout << "Tree built" << std::endl;
    // double t = tmr.elapsed();  
    // std::cout << "building tree time =" << t << std::endl;
    // tmr.reset();
-    tree.test_XtXXtY(original_points); 
+  //  tree.test_XtXXtY(original_points); 
     Eigen::VectorXd results(points.size());
     query_pts = convert_to_query(original_points);
 //    Timer tmr; 
@@ -617,23 +592,27 @@ Eigen::VectorXd test_beta(Eigen::MatrixXd X, double bandwidth) {   // test funct
     }       
     return results;
 } 
+
 /*
+
 int main(){ 
   // test_weight();
 
     // test kdtree; 
-   Eigen::MatrixXd test1 = Eigen::MatrixXd::Random(15, 5);
- //   Eigen::MatrixXd test2(3,3); 
-  //  test2 << 0.2,0.4,0.5,0.5,0.3,0.3,0.3,0.2,0.4;
- std::cout << "Answer" << std::endl;
- std::cout << locpoly(test1, 0.00, 0.5, 1) << "\n";
- std::cout << "Correct Answer" << std::endl;
- std::cout << test_beta(test1, 0.5); 
+    
+     Eigen::MatrixXd test1 = Eigen::MatrixXd::Random(500, 3);
+//   Eigen::MatrixXd test2(3,3); 
+//  test2 << 0.2,0.4,0.5,0.5,0.3,0.3,0.3,0.2,0.4;
+    
+    locpoly(test1, 0.05, 0.5, 2);
+    
+//    test_beta(test1, 0.5);
+    std::cout << locpoly(test1, 0.05, 0.5, 2) - locpoly(test1, 0.05, 0.5, 1);
 //    test_weight();
 
 }  
-*/
 
+*/
 
 
 
