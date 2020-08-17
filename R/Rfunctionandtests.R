@@ -2,6 +2,7 @@ library(MASS)
 plot(mcycle)
 motor_matrix = as.matrix(mcycle)
 
+#locpoly (original_matrix, epsilon, bandwidth, method, N_min, kcode) N_min for number of points stored in one node.
 system.time({y = locpoly(motor_matrix, 0.05, 0.3, 2, 133, 1)})
 y = cbind(motor_matrix[,'times'],y)
 plot(motor_matrix)

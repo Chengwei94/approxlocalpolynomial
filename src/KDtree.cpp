@@ -477,7 +477,7 @@ Eigen::VectorXd solve_beta(int kcode, const Eigen::MatrixXd &XtX, const Eigen::M
 
 // [[Rcpp::export]]
 Eigen::VectorXd locpoly(Eigen::MatrixXd original_points, double epsilon, double bandwidth, 
-                        int method , int N_min, int kcode){ 
+                        int method , int N_min, int kcode){    //method 1 for exact, 2 for approximate, bandwidth is 1d, will add vector later, epsilon is for epsilon for approximate
     all_point_t points; 
     all_point_t query_pts;
     points = convert_to_vector(original_points); 
