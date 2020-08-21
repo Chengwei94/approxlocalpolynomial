@@ -42,9 +42,9 @@ class kdtree{
         std::unique_ptr<kdnode> build_tree(all_point_t::iterator, all_point_t::iterator, int, double, int, size_t, std::vector<double>, std::vector<double>);
         std::unique_ptr<kdnode> build_exacttree(all_point_t::iterator, all_point_t::iterator, int, double, int, size_t, std::vector<double>, std::vector<double>);
         explicit kdtree(all_point_t, int, int); 
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> get_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>& ,double, int );
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> getapprox_XtXXtY(Eigen::VectorXd, std::vector<double>, std::vector<double>, std::unique_ptr<kdnode>&, double , double, int);
-        std::pair<Eigen::MatrixXd, Eigen::VectorXd> find_XtXXtY(Eigen::VectorXd, int, double, double, int);
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> get_XtXXtY(const Eigen::VectorXd& query_pt, std::vector<double> max_dim, std::vector<double> min_dim, std::unique_ptr<kdnode>& root, const Eigen::VectorXd& h, int kcode);
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> getapprox_XtXXtY(const Eigen::VectorXd& query_pt, std::vector<double> max_dim, std::vector<double> min_dim, std::unique_ptr<kdnode>& root, double epsilon, const Eigen::VectorXd& h, int kcode);
+        std::pair<Eigen::MatrixXd, Eigen::VectorXd> find_XtXXtY(const Eigen::VectorXd& query_pt, int method, double epsilon, const Eigen::VectorXd& h, int kcode);
         // test functions; 
         void test_XtX(Eigen::MatrixXd);
         void test_XtY(Eigen::MatrixXd);
@@ -66,17 +66,16 @@ class Timer
 };
 
 // functions 
-all_point_t convert_to_vector(Eigen::MatrixXd);
-all_point_t convert_to_query(Eigen::MatrixXd);
-double eval_kernel(int, double, double);
-std::pair<double, double> calculate_weight(int, Eigen::VectorXd, std::vector<double>, std::vector<double>, double); 
-void findXtX(Eigen::VectorXd);
-Eigen::MatrixXd form_ll_XtX(const Eigen::MatrixXd &, const Eigen::VectorXd & ); 
-Eigen::VectorXd form_ll_XtY(const Eigen::VectorXd &, const Eigen::VectorXd & );
-Eigen::VectorXd solve_beta(Eigen::MatrixXd, Eigen::VectorXd);
+all_point_t convert_to_vector(const Eigen::MatrixXd& original_points);
+all_point_t convert_to_query(const Eigen::MatrixXd& original_points);
+double eval_kernel(int kcode, const double& z);
+std::pair<double, double> calculate_weight(int kcode, const Eigen::VectorXd& query_pt, std::vector<double> max_dim, std::vector<double> min_dim , const Eigen::VectorXd& h); 
+Eigen::MatrixXd form_ll_XtX(const Eigen::MatrixXd& XtX, const Eigen::VectorXd& query_pt ); 
+Eigen::VectorXd form_ll_XtY(const Eigen::VectorXd& XtY , const Eigen::VectorXd& query_pt);
+Eigen::VectorXd solve_beta(const Eigen::MatrixXd& XtX, const Eigen::VectorXd& XtY);
 
 // R function
-Eigen::VectorXd locpoly(Eigen::MatrixXd, double, double, int, int);
+Eigen::VectorXd locpoly(const Eigen::MatrixXd & original_points, double epsilon, const Eigen::VectorXd& h, int method, int N_min, int kcode);
 
 
 // test functions
