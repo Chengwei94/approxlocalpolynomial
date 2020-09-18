@@ -9,5 +9,7 @@ Maintainer: Who to complain to
 Description: More about what it does (maybe more
      than one line)
 License: GPL3
-Imports: Rcpp (>= 1.0.4.6)
+Imports: Rcpp (>= 1.0.4.6), dplyr, MASS
 LinkingTo: Rcpp, RcppEigen
+Suggests: 
+    testthat
