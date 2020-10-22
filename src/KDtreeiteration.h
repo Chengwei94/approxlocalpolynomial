@@ -35,7 +35,6 @@ class kdtree{
     public:     
         kdtree(); 
         ~kdtree();  
-        double weight_sf;
         int tracker;
         std::shared_ptr<kdnode> root; 
         std::shared_ptr<kdnode> leaf;
