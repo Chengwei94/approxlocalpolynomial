@@ -6,10 +6,10 @@ Date: 2020-08-04
 Author: Who wrote it
 Maintainer: Who to complain to
      <yourfault@somewhere.net>
-Description: More about what it does (maybe more
-     than one line)
+Description: performs local linear regression and bandwidth selection
 License: GPL3
 Imports: Rcpp (>= 1.0.4.6), dplyr, MASS
 LinkingTo: Rcpp, RcppEigen
 Suggests: 
     testthat
+RoxygenNote: 7.1.1

@@ -6,9 +6,9 @@
 
 using namespace Rcpp;
 
-// loclinear_i
-Eigen::VectorXd loclinear_i(const Eigen::MatrixXd& XY_mat, int method, int kcode, double epsilon, const Eigen::VectorXd& h, int N_min);
-RcppExport SEXP _localweightedreg_loclinear_i(SEXP XY_matSEXP, SEXP methodSEXP, SEXP kcodeSEXP, SEXP epsilonSEXP, SEXP hSEXP, SEXP N_minSEXP) {
+// loclin
+Eigen::VectorXd loclin(const Eigen::MatrixXd& XY_mat, int method, int kcode, double epsilon, const Eigen::VectorXd& h, int N_min);
+RcppExport SEXP _localweightedreg_loclin(SEXP XY_matSEXP, SEXP methodSEXP, SEXP kcodeSEXP, SEXP epsilonSEXP, SEXP hSEXP, SEXP N_minSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -18,30 +18,30 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type epsilon(epsilonSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type h(hSEXP);
     Rcpp::traits::input_parameter< int >::type N_min(N_minSEXP);
-    rcpp_result_gen = Rcpp::wrap(loclinear_i(XY_mat, method, kcode, epsilon, h, N_min));
+    rcpp_result_gen = Rcpp::wrap(loclin(XY_mat, method, kcode, epsilon, h, N_min));
     return rcpp_result_gen;
 END_RCPP
 }
-// predict_i
-Eigen::VectorXd predict_i(const Eigen::MatrixXd& XY_mat, const Eigen::MatrixXd& Xpred_mat, int method, int kcode, double epsilon, const Eigen::VectorXd& h, int N_min);
-RcppExport SEXP _localweightedreg_predict_i(SEXP XY_matSEXP, SEXP Xpred_matSEXP, SEXP methodSEXP, SEXP kcodeSEXP, SEXP epsilonSEXP, SEXP hSEXP, SEXP N_minSEXP) {
+// predict
+Eigen::VectorXd predict(const Eigen::MatrixXd& XY_mat, const Eigen::MatrixXd& X_mat, int method, int kcode, double epsilon, const Eigen::VectorXd& h, int N_min);
+RcppExport SEXP _localweightedreg_predict(SEXP XY_matSEXP, SEXP X_matSEXP, SEXP methodSEXP, SEXP kcodeSEXP, SEXP epsilonSEXP, SEXP hSEXP, SEXP N_minSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type XY_mat(XY_matSEXP);
-    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type Xpred_mat(Xpred_matSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type X_mat(X_matSEXP);
     Rcpp::traits::input_parameter< int >::type method(methodSEXP);
     Rcpp::traits::input_parameter< int >::type kcode(kcodeSEXP);
     Rcpp::traits::input_parameter< double >::type epsilon(epsilonSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type h(hSEXP);
     Rcpp::traits::input_parameter< int >::type N_min(N_minSEXP);
-    rcpp_result_gen = Rcpp::wrap(predict_i(XY_mat, Xpred_mat, method, kcode, epsilon, h, N_min));
+    rcpp_result_gen = Rcpp::wrap(predict(XY_mat, X_mat, method, kcode, epsilon, h, N_min));
     return rcpp_result_gen;
 END_RCPP
 }
-// h_select_i
-Eigen::VectorXd h_select_i(const Eigen::MatrixXd& XY_mat, int method, int kcode, double epsilon, const Eigen::MatrixXd& bw, int N_min);
-RcppExport SEXP _localweightedreg_h_select_i(SEXP XY_matSEXP, SEXP methodSEXP, SEXP kcodeSEXP, SEXP epsilonSEXP, SEXP bwSEXP, SEXP N_minSEXP) {
+// bw_loocv
+Eigen::VectorXd bw_loocv(const Eigen::MatrixXd& XY_mat, int method, int kcode, double epsilon, const Eigen::MatrixXd& bw, int N_min);
+RcppExport SEXP _localweightedreg_bw_loocv(SEXP XY_matSEXP, SEXP methodSEXP, SEXP kcodeSEXP, SEXP epsilonSEXP, SEXP bwSEXP, SEXP N_minSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -51,15 +51,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type epsilon(epsilonSEXP);
     Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type bw(bwSEXP);
     Rcpp::traits::input_parameter< int >::type N_min(N_minSEXP);
-    rcpp_result_gen = Rcpp::wrap(h_select_i(XY_mat, method, kcode, epsilon, bw, N_min));
+    rcpp_result_gen = Rcpp::wrap(bw_loocv(XY_mat, method, kcode, epsilon, bw, N_min));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_localweightedreg_loclinear_i", (DL_FUNC) &_localweightedreg_loclinear_i, 6},
-    {"_localweightedreg_predict_i", (DL_FUNC) &_localweightedreg_predict_i, 7},
-    {"_localweightedreg_h_select_i", (DL_FUNC) &_localweightedreg_h_select_i, 6},
+    {"_localweightedreg_loclin", (DL_FUNC) &_localweightedreg_loclin, 6},
+    {"_localweightedreg_predict", (DL_FUNC) &_localweightedreg_predict, 7},
+    {"_localweightedreg_bw_loocv", (DL_FUNC) &_localweightedreg_bw_loocv, 6},
     {NULL, NULL, 0}
 };
 

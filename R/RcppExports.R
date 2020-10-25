@@ -13,7 +13,7 @@
 #' larger nodes stored result in less accuracy 
 #' @export
 #' @examples 
-#' std::cout << loclinear_i(test1, 2, 1, 0.05, h, 1) where h is a vector of bandwidth
+#' std::cout << loclin(test1, 2, 1, 0.05, h, 1) where h is a vector of bandwidth
 NULL
 
 #' This function is used to select bandwidth given a matrix of bandwidths 
@@ -28,18 +28,18 @@ NULL
 #' larger nodes stored result in less accuracy 
 #' @export
 #' @examples 
-#' std::cout << h_select_i(test1, 2, 1, 0.05, h, 1) where h is a vector of bandwidth
+#' std::cout << bw_loocv(test1, 2, 1, 0.05, h, 1) where h is a vector of bandwidth
 NULL
 
-loclinear_i <- function(XY_mat, method, kcode, epsilon, h, N_min) {
-    .Call('_localweightedreg_loclinear_i', PACKAGE = 'localweightedreg', XY_mat, method, kcode, epsilon, h, N_min)
+loclin <- function(XY_mat, method, kcode, epsilon, h, N_min) {
+    .Call('_localweightedreg_loclin', PACKAGE = 'localweightedreg', XY_mat, method, kcode, epsilon, h, N_min)
 }
 
-predict_i <- function(XY_mat, Xpred_mat, method, kcode, epsilon, h, N_min) {
-    .Call('_localweightedreg_predict_i', PACKAGE = 'localweightedreg', XY_mat, Xpred_mat, method, kcode, epsilon, h, N_min)
+predict <- function(XY_mat, X_mat, method, kcode, epsilon, h, N_min) {
+    .Call('_localweightedreg_predict', PACKAGE = 'localweightedreg', XY_mat, X_mat, method, kcode, epsilon, h, N_min)
 }
 
-h_select_i <- function(XY_mat, method, kcode, epsilon, bw, N_min) {
-    .Call('_localweightedreg_h_select_i', PACKAGE = 'localweightedreg', XY_mat, method, kcode, epsilon, bw, N_min)
+bw_loocv <- function(XY_mat, method, kcode, epsilon, bw, N_min) {
+    .Call('_localweightedreg_bw_loocv', PACKAGE = 'localweightedreg', XY_mat, method, kcode, epsilon, bw, N_min)
 }
 
